@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Location Pinning Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+    
+    <form id="location-form">
+        <label for="note">Note:</label>
+        <textarea id="note" name="note" placeholder="Add a note..."></textarea><br><br>
+
+        <label for="photo">Upload Photo:</label>
+        <input type="file" id="photo" name="photo" accept="image/*"><br><br>
+
+        <label for="audio">Upload Audio:</label>
+        <input type="file" id="audio" name="audio" accept="audio/*"><br><br>
+
+        <label for="video">Upload Video:</label>
+        <input type="file" id="video" name="video" accept="video/*"><br><br>
+
+        <!-- Hidden fields for latitude and longitude -->
+        <input type="hidden" id="latitude" name="latitude">
+        <input type="hidden" id="longitude" name="longitude">
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13); // Default location (London)
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        var marker;
+
+        map.on('click', function(e) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+
+            // Set hidden latitude/longitude values
+            document.getElementById('latitude').value = e.latlng.lat;
+            document.getElementById('longitude').value = e.latlng.lng;
+        });
+    </script>
+    <script src="https://utteranc.es/client.js"
+        repo="YOUR_USERNAME/YOUR_REPOSITORY"
+        issue-term="title"
+        label="location"
+        theme="github-light"
+        crossorigin="anonymous">
+    </script>
+
+    <script>
+    document.getElementById('location-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Capture the form data
+        var note = document.getElementById('note').value;
+        var latitude = document.getElementById('latitude').value;
+        var longitude = document.getElementById('longitude').value;
+
+        // Prepare the GeoJSON data
+        var geoJsonData = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [parseFloat(longitude), parseFloat(latitude)]
+            },
+            "properties": {
+                "note": note,
+                "media": {}
+            }
+        };
+
+        // Handle file uploads
+        var photo = document.getElementById('photo').files[0];
+        var audio = document.getElementById('audio').files[0];
+        var video = document.getElementById('video').files[0];
+
+        // Add media URLs (simulating media upload here)
+        if (photo) {
+            geoJsonData.properties.media.photo = `https://example.com/media/${photo.name}`;
+        }
+        if (audio) {
+            geoJsonData.properties.media.audio = `https://example.com/media/${audio.name}`;
+        }
+        if (video) {
+            geoJsonData.properties.media.video = `https://example.com/media/${video.name}`;
+        }
+
+        // Prepare the comment text in GeoJSON format
+        var commentText = `### Location Data\n\n${JSON.stringify(geoJsonData, null, 2)}`;
+
+        // Autofill the comment section
+        let utterancesIframe = document.querySelector('iframe');
+        let commentBox = utterancesIframe.contentWindow.document.querySelector('.input-area');
+        let commentInput = commentBox.querySelector('textarea');
+
+        if (commentInput) {
+            commentInput.value = commentText;
+            commentInput.dispatchEvent(new Event('input')); // Trigger input event to update state
+        }
+
+        // Optionally, you could also trigger the comment submission programmatically, 
+        // but it's handled by Utterances after the user logs in.
+
+        alert("Your location data is ready for submission! Sign in via GitHub to submit.");
+    });
+    </script>
+    <script>
+        async function fetchGitHubIssues() {
+            const repo = 'YOUR_USERNAME/YOUR_REPOSITORY';
+            const response = await fetch(`https://api.github.com/repos/${repo}/issues`);
+            const issues = await response.json();
+    
+            issues.forEach(issue => {
+                // Extract GeoJSON data from the comment body
+                const geoJsonData = JSON.parse(issue.body);
+    
+                // Add markers to Leaflet map based on the coordinates
+                const lat = geoJsonData.geometry.coordinates[1];
+                const lon = geoJsonData.geometry.coordinates[0];
+    
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup(`<b>Note:</b> ${geoJsonData.properties.note}`);
+            });
+        }
+    
+        // Fetch issues once per week
+        setInterval(fetchGitHubIssues, 7 * 24 * 60 * 60 * 1000);  // Every week (in milliseconds)
+    </script>
+    
+
+</body>
+</html>
