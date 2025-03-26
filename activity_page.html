@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Location with Comment</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        #location {
+            margin: 20px 0;
+        }
+        textarea {
+            width: 100%;
+            margin: 10px 0;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPS Location with Comment</h1>
+
+    <div id="map"></div>
+
+    <h3>Your Location</h3>
+    <p id="location">Fetching location...</p>
+
+    <h3>Leave a Comment or Upload a Picture</h3>
+    <textarea id="comment" rows="4" placeholder="Write a comment..."></textarea>
+    <br>
+    <input type="file" id="fileInput" accept="image/*">
+    <br>
+    <button onclick="saveLocation()">Save Location</button>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([51.505, -0.09], 13);  // Default to London, but will update
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Function to get user's GPS location
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                document.getElementById("location").innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        // Show the position on the map
+        function showPosition(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+
+            // Update location display
+            document.getElementById("location").innerHTML = "Latitude: " + lat + "<br>Longitude: " + lon;
+
+            // Center the map on the user's location
+            map.setView([lat, lon], 13);
+
+            // Add a marker at the user's location
+            var marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("You are here!").openPopup();
+        }
+
+        // Call getLocation to fetch user's current GPS
+        getLocation();
+
+        // Function to save the location and comment to a GeoJSON file
+        function saveLocation() {
+            var comment = document.getElementById("comment").value;
+            var fileInput = document.getElementById("fileInput");
+            var image = fileInput.files[0];  // Get image if uploaded
+
+            // Prepare data for the GeoJSON file
+            var locationData = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [map.getCenter().lng, map.getCenter().lat]
+                },
+                "properties": {
+                    "comment": comment,
+                    "image": image ? image.name : null
+                }
+            };
+
+            // Append new location data to local GeoJSON file
+            saveToGeoJSON(locationData);
+        }
+
+        // Saving to a local GeoJSON file (This would be handled on a server in a production environment)
+        function saveToGeoJSON(data) {
+            var geoJSON = {
+                "type": "FeatureCollection",
+                "features": [data]
+            };
+
+            var geoJSONString = JSON.stringify(geoJSON);
+
+            // Create a Blob with the geoJSON data
+            var blob = new Blob([geoJSONString], { type: 'application/json' });
+
+            // Create a download link for the GeoJSON file
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'location_data.geojson';
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Location with Activity Check</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        #location {
+            margin: 20px 0;
+        }
+        #activityButton {
+            display: none; /* Hide by default */
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPS Location with Activity Check</h1>
+
+    <div id="map"></div>
+
+    <h3>Your Location</h3>
+    <p id="location">Fetching location...</p>
+
+    <button id="activityButton" onclick="window.location.href='activity_page.html'">Go to Activity</button>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([51.505, -0.09], 13);  // Default to London, but will update
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Coordinates for the target location (Latitude: 48.1886208, Longitude: 11.436032)
+        var targetLat = 53.806505; 
+        var targetLon = -1.554763;
+        var targetRadius = 100; // 100 meters
+
+        // Function to get user's GPS location
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                document.getElementById("location").innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        // Show the position on the map
+        function showPosition(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+
+            // Update location display
+            document.getElementById("location").innerHTML = "Latitude: " + lat + "<br>Longitude: " + lon;
+
+            // Center the map on the user's location
+            map.setView([lat, lon], 13);
+
+            // Add a marker at the user's location
+            var marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("You are here!").openPopup();
+
+            // Check if the user's location is inside the target circle
+            checkLocationInsideCircle(lat, lon);
+        }
+
+        // Call getLocation to fetch user's current GPS
+        getLocation();
+
+        // Create a circle around the target point (100m radius)
+        var targetCircle = L.circle([targetLat, targetLon], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: targetRadius
+        }).addTo(map);
+
+        // Function to check if the user's location is inside the target circle
+        function checkLocationInsideCircle(userLat, userLon) {
+            var userLocation = L.latLng(userLat, userLon);
+            var targetLocation = L.latLng(targetLat, targetLon);
+
+            // Check if the user is inside the circle
+            if (targetLocation.distanceTo(userLocation) <= targetRadius) {
+                // Show the activity button if inside the circle
+                document.getElementById("activityButton").style.display = "block";
+            } else {
+                // Hide the activity button if outside the circle
+                document.getElementById("activityButton").style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
